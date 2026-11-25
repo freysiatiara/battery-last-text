@@ -26,7 +26,22 @@ def resolve_output_path():
     return "/output/entry.txt"
 
 
+def validate_entry(text):
+    """Guard: the entry must be 1-200 chars, one line, valid UTF-8.
+
+    Raises on an invalid entry; never changes the output bytes.
+    """
+    text.encode("utf-8")
+    if not 1 <= len(text) <= 200:
+        raise ValueError("entry must be 1-200 characters")
+    if "\n" in text or "\r" in text:
+        raise ValueError("entry must be a single line")
+    if not text.strip():
+        raise ValueError("entry must not be only whitespace")
+
+
 def main():
+    validate_entry(ENTRY_TEXT)
     path = resolve_output_path()
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -35,6 +50,10 @@ def main():
     with open(path, "w", encoding="utf-8", newline="") as f:
         f.write(ENTRY_TEXT)
     os.chmod(path, 0o644)
+    # Read-back check: what landed on disk must be byte-identical.
+    with open(path, "rb") as f:
+        if f.read().decode("utf-8") != ENTRY_TEXT:
+            raise ValueError("read-back mismatch")
 
 
 if __name__ == "__main__":
